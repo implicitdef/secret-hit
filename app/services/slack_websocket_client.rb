@@ -2,10 +2,11 @@ class SlackWebsocketClient
 
 
 
-  def initialize(url)
+  def initialize(url:, bot_id:)
     @id_counter = 0
     @disconnected = false
     @url = url
+    @bot_id = bot_id
     @ws = WebSocket::Client::Simple.connect @url do |ws|
       ws.on :close do |e|
         puts "Websocket connection closed"
@@ -32,11 +33,19 @@ class SlackWebsocketClient
   def on_message
     raise "You need to provide a block" unless block_given?
     raise "Can't listen, websocket is disconnected" if @ws.nil?
+    bot_id = @bot_id
     @ws.on :message do |msg|
       begin
         json = JSON.parse(msg.data)
-        if json['type'] == 'message'
-          yield json
+        if json['type'] == 'message' && !json['text'].nil?
+          channel = json['channel']
+          text = json['text']
+          yield ({
+            channel: channel,
+            text: text,
+            is_direct_message:  channel.start_with?("D"),
+            is_with_mention: text.include?("<@#{bot_id}>")
+          })
         end
       rescue JSON::ParserError
         # we get some empty messages sometimes for some reason
