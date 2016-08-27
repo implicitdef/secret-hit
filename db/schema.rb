@@ -56,7 +56,9 @@ ActiveRecord::Schema.define(version: 20160827094728) do
   end
 
   create_table "teams", force: :cascade do |t|
+    t.string   "api_token"
     t.string   "team_id"
+    t.string   "team_name"
     t.string   "bot_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

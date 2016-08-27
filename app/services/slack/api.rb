@@ -14,11 +14,15 @@ module Slack
       json["url"]
     end
     def get_own_id
-      json = do_call!('auth.test', params: {})
+      json = do_call!('auth.test')
       json['user_id']
     end
+    def get_team_name
+      json = do_call!('auth.test')
+      json['team']
+    end
     def get_team_id
-      json = do_call!('auth.test', params: {})
+      json = do_call!('auth.test')
       json['team_id']
     end
     def find_channel_by_name(name)
