@@ -3,12 +3,22 @@ class Entry
   puts "-- Running Entry"
 
 
-  api = SlackApi.new(ENV["slack_bot_token"])
+  # TODO test module organisations
+
+  # Protocole a mettre en place :
+  # recevoir un declenchement d'une team (simule l'integration externe)
+
+  # demarrer une websocket
+  # ecouter les messages pour declencher un game
+
+
+
+  api = Slack::Api.new(ENV["slack_bot_token"])
   ws_url = api.get_websocket_url
   bot_id = api.get_own_id
   channel = api.find_channel_by_name(:random)
 
-  ws_client = SlackWebsocketClient.new(url: ws_url, bot_id: bot_id)
+  ws_client = Slack::WebsocketClient.new(url: ws_url, bot_id: bot_id)
 
   #sleep(5.seconds)
   #ws_client.send(text: "Hey guys I'm in", to: channel)
