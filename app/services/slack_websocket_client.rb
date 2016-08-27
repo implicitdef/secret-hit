@@ -19,7 +19,6 @@ class SlackWebsocketClient
       ws.on :message do |msg|
         begin
           json = JSON.parse(msg.data)
-          puts "ws >>> #{json}"
           if json['type'] == 'error'
             puts "Websocket error #{json}"
           end
@@ -38,14 +37,18 @@ class SlackWebsocketClient
       begin
         json = JSON.parse(msg.data)
         if json['type'] == 'message' && !json['text'].nil?
+          user = json['user']
           channel = json['channel']
           text = json['text']
-          yield ({
-            channel: channel,
-            text: text,
-            is_direct_message:  channel.start_with?("D"),
-            is_with_mention: text.include?("<@#{bot_id}>")
-          })
+          unless user == bot_id
+            yield ({
+              user: user,
+              channel: channel,
+              text: text,
+              is_direct_message:  channel.start_with?("D"),
+              is_with_mention: text.include?("<@#{bot_id}>")
+            })
+          end
         end
       rescue JSON::ParserError
         # we get some empty messages sometimes for some reason
