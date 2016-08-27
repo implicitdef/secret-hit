@@ -13,17 +13,21 @@ class SlackApi
     })
     json["url"]
   end
-
+  def get_own_id
+    json = do_call!('auth.test', params: {})
+    json['user_id']
+  end
+  def get_team_id
+    json = do_call!('auth.test', params: {})
+    json['team_id']
+  end
   def find_channel_by_name(name)
     json = do_call!('channels.list', params: {
         exclude_archived: true
     })
-
     channel = json['channels'].find { |c| c['name'] == name.to_s}
     (channel || {})['id']
   end
-
-
 
   private
 
@@ -36,7 +40,7 @@ class SlackApi
     end
     json = JSON.parse(response.to_s)
     unless json["ok"]
-      raise "Got #{json["error"]} for #{url}"
+      raise "Got error #{json["error"]} for #{url}"
     end
     json
   end

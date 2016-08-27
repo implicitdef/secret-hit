@@ -3,6 +3,8 @@ class CreateGames < ActiveRecord::Migration[5.0]
     create_table :games do |t|
       t.belongs_to :team, index: true
 
+      t.string :channel_id
+
       # The policies arrays all contain strings which are either
       # "liberal" or "fascist"
       t.string :policies_stack, array: true

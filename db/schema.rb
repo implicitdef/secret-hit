@@ -34,6 +34,7 @@ ActiveRecord::Schema.define(version: 20160827094728) do
 
   create_table "games", force: :cascade do |t|
     t.integer  "team_id"
+    t.string   "channel_id"
     t.string   "policies_stack",                        array: true
     t.string   "discarded_stack",                       array: true
     t.string   "played_policies",                       array: true
