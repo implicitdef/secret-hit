@@ -1,4 +1,4 @@
-class Slack
+class GarbageProtoSlack
 
 
 
@@ -7,7 +7,7 @@ class Slack
   end
 
 
-  def self.connect
+  def self.prepare
     url = 'https://slack.com/api/rtm.start'
     response = HTTP.get(url, params: {
         token: ENV["slack_bot_token"],
@@ -31,11 +31,33 @@ class Slack
   end
 
 
+  def self.start_websocket
+    WebSocket::Client::Simple.connect @@websocket_url do |ws|
+      ws.on :message do |m|
+        msg = JSON.parse(m.data)
+        type = msg["type"]
+        if type == "error"
+          puts "ws [ERROR] >>> #{msg}"
+        else
+          puts "ws [#{type}]>> #{msg}"
+        end
+      end
+      ws.on :close do |e|
+        puts "Websocket connection closed"
+        puts e
+      end
+      ws.on :error do |e|
+        puts "Websocket connection error"
+        p e
+      end
+    end
+  end
+
+
+
   puts "foo"
-  self.connect
-  pp @@team
-  pp @@websocket_url
-  pp Slack.instance_variables
-  #self.connect
+  self.prepare
+  self.start_websocket
+  sleep(2.seconds)
 
 end

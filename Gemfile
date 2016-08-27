@@ -11,6 +11,7 @@ gem 'puma', '~> 3.0'
 gem 'slack-rtmapi'
 gem 'http'
 gem 'figaro'
+gem 'websocket-client-simple'
 
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
 # gem 'jbuilder', '~> 2.5'
