@@ -10,10 +10,27 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160827082712) do
+ActiveRecord::Schema.define(version: 20160827094728) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "game_players", force: :cascade do |t|
+    t.integer  "order"
+    t.string   "role"
+    t.boolean  "is_candidate"
+    t.boolean  "is_candidate_by_special_election"
+    t.boolean  "is_nominee_for_chancellor"
+    t.boolean  "is_president"
+    t.boolean  "is_chancellor"
+    t.boolean  "is_dead"
+    t.boolean  "is_voting_yes"
+    t.boolean  "was_last_chancellor"
+    t.boolean  "was_last_president"
+    t.boolean  "has_been_investigated"
+    t.datetime "created_at",                       null: false
+    t.datetime "updated_at",                       null: false
+  end
 
   create_table "games", force: :cascade do |t|
     t.integer  "team_id"

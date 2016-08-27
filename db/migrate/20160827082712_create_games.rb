@@ -28,6 +28,9 @@ class CreateGames < ActiveRecord::Migration[5.0]
       # => we inform everybody and wait for a ready signal
       # "game_ready"
       # => when we get the ready signal we start the first election
+      # => the candidate must choose its chancellor
+      # "choosing_chancellor"
+      # => the election can start
       # => and wait for all the votes ja/nein
       # "election"
       # => when we got all votes, if election unsuccessful
