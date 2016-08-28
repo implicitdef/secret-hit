@@ -32,6 +32,19 @@ module Slack
       channel = json['channels'].find { |c| c['name'] == name.to_s}
       (channel || {})['id']
     end
+    def find_user_by_name(name)
+      json = do_call!('users.list', params: {
+          exclude_archived: true
+      })
+      channel = json['members'].find { |c| c['name'] == name.to_s}
+      (channel || {})['id']
+    end
+    def find_user_name(id)
+      json = do_call!('users.info', params: {
+          user: id
+      })
+      json['user']['name']
+    end
 
     private
 

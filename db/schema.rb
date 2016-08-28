@@ -16,6 +16,8 @@ ActiveRecord::Schema.define(version: 20160827094728) do
   enable_extension "plpgsql"
 
   create_table "game_players", force: :cascade do |t|
+    t.integer  "game_id"
+    t.integer  "player_id"
     t.integer  "order"
     t.string   "role"
     t.boolean  "is_candidate"
@@ -30,6 +32,8 @@ ActiveRecord::Schema.define(version: 20160827094728) do
     t.boolean  "has_been_investigated"
     t.datetime "created_at",                       null: false
     t.datetime "updated_at",                       null: false
+    t.index ["game_id"], name: "index_game_players_on_game_id", using: :btree
+    t.index ["player_id"], name: "index_game_players_on_player_id", using: :btree
   end
 
   create_table "games", force: :cascade do |t|
@@ -49,7 +53,7 @@ ActiveRecord::Schema.define(version: 20160827094728) do
 
   create_table "players", force: :cascade do |t|
     t.integer  "team_id"
-    t.string   "username"
+    t.string   "user_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["team_id"], name: "index_players_on_team_id", using: :btree

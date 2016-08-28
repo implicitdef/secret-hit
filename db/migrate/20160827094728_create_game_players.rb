@@ -1,6 +1,9 @@
 class CreateGamePlayers < ActiveRecord::Migration[5.0]
   def change
     create_table :game_players do |t|
+      t.belongs_to :game, index: true
+      t.belongs_to :player, index: true
+
       # to organize the players in a circle
       # start from 0
       t.integer :order

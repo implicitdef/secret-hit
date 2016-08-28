@@ -1,21 +1,23 @@
 class Entry
 
+
   puts "-- Running Entry"
 
   #TODO code pour restart la websocket si error
   #TODO code pour sleep la websocket si inactive depuis un moment
   #TODO code pour restart la websocket si on se fait mention, via l'events API
 
-  team = Core::Engine.setup_team(ENV["slack_bot_token"])
-  puts "OK bots we setup'd the team"
+  api = Slack::Api.new(ENV["slack_bot_token"])
+  ws_client = Slack::WebsocketClient.new(url: api.get_websocket_url, bot_id: api.get_own_id)
+  random = api.find_channel_by_name(:random)
+  emmanuel = api.find_user_by_name(:emmanuel)
+
+  team = Core::Engine.setup_team(api, ENV["slack_bot_token"])
+  game = team.setup_game channel_id: random, requester: emmanuel
+
+  Core::Engine.signal_game_setup_done api, ws_client, game
 
 
-
-  # Protocole a mettre en place :
-  # recevoir un declenchement d'une team (simule l'integration externe)
-
-  # demarrer une websocket
-  # ecouter les messages pour declencher un game
 
 
 
