@@ -12,6 +12,14 @@ class Game < ApplicationRecord
     }.merge(GamePlayer.defaults_attrs))
   end
 
+  def remove_game_player(player_id:)
+    game_players.find { |gp| gp.player.user_id == player_id}.destroy!
+  end
+
+  def has_game_player(player_id:)
+    game_players.exists? { |gp| gp.player.user_id == player_id}
+  end
+
   private
 
   def next_order_number_for_creation

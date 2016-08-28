@@ -24,6 +24,35 @@ module Core
       ws_client.send text: "Say 'join' or 'leave' to join or leave the game.", to: game.channel_id
     end
 
+    def self.update_players_list api, ws_client, game
+      ws_client.send text: "#{describe_game_players(api, game)}", to: game.channel_id
+    end
+
+    def self.dispatch_message api, ws_client, game, message
+      #TODO faire des tests sur les models d'abord
+      #TODO debug all of that, its not working
+      channel = message[:channel]
+      text = message[:text]
+      user = message[:user]
+      case game.current_step
+        when 'game_setup'
+          if channel == game.channel_id && text == 'join'
+            unless game.has_game_player player_id: user
+              player = game.team.add_player_if_new id: user
+              game.register_game_player player: player
+              update_players_list api, ws_client, game
+            end
+          elsif channel == game.channel_id && text == 'leave'
+            if game.has_game_player player_id: user
+              game.remove_game_player player_id: user
+              update_players_list api, ws_client, game
+            end
+          end
+      else
+      end
+    end
+
+
 
 
 

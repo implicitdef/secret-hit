@@ -14,8 +14,14 @@ class Entry
 
   team = Core::Engine.setup_team(api, ENV["slack_bot_token"])
   game = team.setup_game channel_id: random, requester: emmanuel
-
   Core::Engine.signal_game_setup_done api, ws_client, game
+  ws_client.on_message do |message|
+    Core::Engine.dispatch_message api, ws_client, game, message
+  end
+
+  sleep(10.minutes)
+
+
 
 
 
