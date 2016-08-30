@@ -32,21 +32,31 @@ module Slack
       raise "You need to provide a block" unless block_given?
       raise "Can't listen, websocket is disconnected" if @ws.nil?
       bot_id = @bot_id
+      # TODO change to a better websocket gem
+      # TODO Why do we need this line first to be able to call the same constructor in the 'on' part
+      #Slack::WebsocketMessage.new
       @ws.on :message do |msg|
         begin
+          puts "ws > #{msg.data}"
           json = JSON.parse(msg.data)
           if json['type'] == 'message' && !json['text'].nil?
             user = json['user']
             channel = json['channel']
             text = json['text']
             unless user == bot_id
-              yield({
-                user: user,
-                channel: channel,
-                text: text,
-                is_direct_message:  channel.start_with?("D"),
-                is_with_mention: text.include?("<@#{bot_id}>")
-              })
+              begin
+                puts "OVER"
+                m = Slack::WebsocketMessage.new
+                puts "UNDER"
+              rescue
+                puts "RESCUED"
+              end
+              m.user = user
+              m.channel = channel
+              m.text = text
+              m.is_direct_message =  channel.start_with?("D")
+              m.is_with_mention = text.include?("<@#{bot_id}>")
+              yield m
             end
           end
         rescue JSON::ParserError
