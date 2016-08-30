@@ -1,2 +1,0 @@
-class Funk
-end
