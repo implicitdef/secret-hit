@@ -6,8 +6,13 @@ import play.api.Logger
 import utils._
 import play.api.mvc._
 import slack.IncomingEvents._
+import slack.SlackClient
+
+import scala.concurrent.ExecutionContext
 @Singleton
-class HomeController @Inject() () extends Controller {
+class HomeController @Inject() (
+                               slackClient: SlackClient
+)(implicit ec: ExecutionContext) extends Controller {
 
   def index = Action {
     Ok("ok")
@@ -28,6 +33,13 @@ class HomeController @Inject() () extends Controller {
         fsucc(Ok("ok"))
     }.getOrElse {
       fsucc(BadRequest("unrecognized json"))
+    }
+  }
+
+  def test = Action.async { req =>
+    slackClient.authTest.map { res =>
+      Logger.info(s">> ${res}")
+      Ok("ok")
     }
   }
 

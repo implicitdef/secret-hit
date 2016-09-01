@@ -1,1 +1,3 @@
 GET     /                           controllers.HomeController.index
+GET     /slack                      controllers.HomeController.slack
+GET     /test                       controllers.HomeController.test
