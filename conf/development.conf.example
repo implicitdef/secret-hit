@@ -3,7 +3,3 @@ SECRET_HITLER_APP_SECRET = "secret"
 SECRET_HITLER_DB_URL = "jdbc:postgresql://localhost:5432/secret_hitler"
 SECRET_HITLER_DB_USER = "...set here the user..."
 SECRET_HITLER_DB_PASSWORD = "...set here the password..."
-
-// To generate Slick classes from your local DB
-// sbt > console > then something like that :
-// slick.codegen.SourceCodeGenerator.main(Array("slick.driver.PostgresDriver", "org.postgresql.Driver", "jdbc:postgresql://localhost:5432/secret_hitler", "app/db/models", "", "manu", ""))

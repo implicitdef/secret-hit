@@ -1,8 +1,10 @@
 package db
 
+import java.sql.Timestamp
 import javax.inject._
 
 import db.models.Tables._
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.db.slick.DatabaseConfigProvider
 import slick.dbio.{DBIOAction, NoStream}
@@ -26,8 +28,8 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
   def doTest: Future[Unit] =
     run {
       for {
-        _ <- Team += TeamRow(AutoIncr, "name", Some("funk"))
-        size <- Team.size.result
+        _ <- Teams += TeamRow(AutoIncr, "name", new Timestamp(DateTime.now.toDate.getTime), Some("funk"))
+        size <- Teams.size.result
       } yield size
     }.map { size =>
       Logger.info(s"Teams $size")

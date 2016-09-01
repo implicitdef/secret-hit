@@ -13,6 +13,9 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "2.0.2",
   "com.typesafe.play" %% "play-slick-evolutions" % "2.0.2",
   "com.typesafe.slick" %% "slick-codegen" % "3.1.0",
+  "com.github.tminglei" %% "slick-pg" % "0.14.3",
+  "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.3",
+  "com.github.tminglei" %% "slick-pg_play-json" % "0.14.3",
   "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test
 )
 
