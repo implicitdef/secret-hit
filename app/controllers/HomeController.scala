@@ -2,6 +2,7 @@ package controllers
 
 import javax.inject._
 
+import db.DbTest
 import play.api.Logger
 import utils._
 import play.api.mvc._
@@ -11,7 +12,8 @@ import slack.SlackClient
 import scala.concurrent.ExecutionContext
 @Singleton
 class HomeController @Inject() (
-                               slackClient: SlackClient
+                               slackClient: SlackClient,
+                               dbTest: DbTest
 )(implicit ec: ExecutionContext) extends Controller {
 
   def index = Action {
@@ -37,8 +39,7 @@ class HomeController @Inject() (
   }
 
   def test = Action.async { req =>
-    slackClient.authTest.map { res =>
-      Logger.info(s">> ${res}")
+    dbTest.doTest.map { _ =>
       Ok("ok")
     }
   }
