@@ -1,5 +1,6 @@
 package db.slicksetup
 
+import db.slicksetup.Enums.GameSteps.GameStep
 
 
 object Tables {
@@ -43,14 +44,16 @@ object Tables {
      slackTeamId: String,
      id: Int,
      slackChannelId: String,
-     turnsWithoutElections: Int
+     turnsWithoutElections: Int,
+     currentStep: GameStep
    )
-  class Game(tag: Tag) extends Table[GameRow](tag, "slack_users") {
-    def * = (slackTeamId, id, slackChannelId, turnsWithoutElections) <> (GameRow.tupled, GameRow.unapply)
+  class Game(tag: Tag) extends Table[GameRow](tag, "games") {
+    def * = (slackTeamId, id, slackChannelId, turnsWithoutElections, currentStep) <> (GameRow.tupled, GameRow.unapply)
     def slackTeamId: Rep[String] = column[String]("slack_team_id")
     def id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
     def slackChannelId: Rep[String] = column[String]("slack_channel_id")
     def turnsWithoutElections: Rep[Int] = column[Int]("turns_without_elections")
+    def currentStep: Rep[GameStep] = column[GameStep]("current_step")
     def slackTeam = foreignKey(FkName, slackTeamId, SlackTeams)(_.slackTeamId)
   }
   lazy val Games = TableQuery[Game]

@@ -2,6 +2,7 @@ package db
 
 import javax.inject._
 
+import db.slicksetup.Enums.GameSteps
 import db.slicksetup.Tables._
 import play.api.Logger
 import play.api.db.slick.DatabaseConfigProvider
@@ -30,7 +31,7 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
         _ <- SlackUsers += SlackUserRow("team1", "userA")
         _ <- SlackUsers += SlackUserRow("team1", "userB")
         _ <- SlackUsers += SlackUserRow("team1", "userC")
-        _ <- Games += GameRow("team1", -1, "slackChannel", 0)
+        _ <- Games += GameRow("team1", -1, "slackChannel", 0, GameSteps.game_ready)
         teams <- SlackTeams.result
         users <- SlackUsers.result
       } yield (teams, users)
