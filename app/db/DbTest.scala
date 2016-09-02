@@ -22,13 +22,21 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
   def doTest: Future[Unit] =
     run {
       for {
-        _ <- SlackTeams += SlackTeamRow("slackId", "slackApiToken", "slackName")
-        _ <- SlackTeams += SlackTeamRow("slackId2", "slackApiToken", "slackName")
+        _ <- SlackUsers.delete
+        _ <- SlackTeams.delete
+        _ <- SlackTeams += SlackTeamRow("team1", "slackApiToken")
+        _ <- SlackTeams += SlackTeamRow("team2", "slackApiToken2")
+        _ <- SlackUsers += SlackUserRow("team1", "userA")
+        _ <- SlackUsers += SlackUserRow("team1", "userB")
+        _ <- SlackUsers += SlackUserRow("team1", "userC")
         teams <- SlackTeams.result
-      } yield teams
-    }.map { teams =>
+        users <- SlackUsers.result
+      } yield (teams, users)
+    }.map { case (teams, users) =>
       Logger.info(s"Teams ${teams.size}")
       teams.foreach {t => Logger.info(t.toString)}
+      Logger.info(s"Users ${users.size}")
+      users.foreach {t => Logger.info(t.toString)}
     }.recover {
       case t => Logger.error("dbTest failed", t)
     }

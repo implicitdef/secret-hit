@@ -2,31 +2,25 @@
 # --- !Ups
 
 CREATE TABLE slack_teams(
-  slack_id TEXT NOT NULL PRIMARY KEY CHECK (char_length(slack_id) < 150),
-  slack_api_token TEXT NOT NULL CHECK (char_length(slack_id) < 150),
-  slack_name TEXT NOT NULL CHECK (char_length(slack_id) < 150),
+  slack_team_id TEXT NOT NULL PRIMARY KEY CHECK (char_length(slack_team_id) < 150),
+  slack_api_token TEXT NOT NULL CHECK (char_length(slack_api_token) < 150),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE slack_users(
+  slack_team_id TEXT NOT NULL REFERENCES slack_teams,
+  slack_user_id TEXT NOT NULL PRIMARY KEY CHECK (char_length(slack_user_id) < 150),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 
 
 
 /*
 archive of rails stuff
 
-create_table :teams do |t|
-      t.string :api_token
-      t.string :team_id
-      t.string :team_name
-      t.string :bot_id
-      t.timestamps
-    end
 
-create_table :players do |t|
-      t.belongs_to :team, index: true
-      t.string :user_id
-      t.timestamps
-
-      create_table :games do |t|
+create_table :games do |t|
       t.belongs_to :team, index: true
 
       t.string :channel_id
