@@ -3,6 +3,7 @@ package db
 import java.sql.Timestamp
 import javax.inject._
 
+import db.slicksetup.Enums.Genders
 import db.slicksetup.Tables._
 import org.joda.time.DateTime
 import play.api.Logger
@@ -28,11 +29,13 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
   def doTest: Future[Unit] =
     run {
       for {
-        _ <- Teams += TeamRow(AutoIncr, "name", DateTime.now, Some("funk"))
-        size <- Teams.size.result
-      } yield size
-    }.map { size =>
-      Logger.info(s"Teams $size")
+        _ <- Teams += TeamRow(AutoIncr, "name", Genders.male, DateTime.now, Some("funk"))
+        _ <- Teams += TeamRow(AutoIncr, "name", Genders.female, DateTime.now.minusYears(10), Some("funk"))
+        teams <- Teams.result
+      } yield teams
+    }.map { teams =>
+      Logger.info(s"Teams ${teams.size}")
+      teams.foreach {t => Logger.info(t.toString)}
     }.recover {
       case t => Logger.error("dbTest failed", t)
     }

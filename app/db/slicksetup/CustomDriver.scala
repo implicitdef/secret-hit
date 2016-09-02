@@ -1,6 +1,6 @@
 package db.slicksetup
 import com.github.tminglei.slickpg._
-import play.api.libs.json.{JsValue, Json}
+import db.slicksetup.Enums.Genders
 import slick.driver.JdbcProfile
 import slick.profile.Capability
 
@@ -8,7 +8,8 @@ import slick.profile.Capability
 object CustomDriver extends ExPostgresDriver
   with PgArraySupport
   with PgDateSupportJoda
-  with PgPlayJsonSupport {
+  with PgPlayJsonSupport
+  with PgEnumSupport {
 
   def pgjson = "jsonb"
 
@@ -22,6 +23,9 @@ object CustomDriver extends ExPostgresDriver
     with JsonImplicits {
     // not sure if we need this ?
     implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
+
+    implicit val genderTypeMapper = createEnumJdbcType("gender", Genders)
+    //implicit val genderColumnExtensionMethodsBuilder = createEnumColumnExtensionMethodsBuilder(Genders)
   }
 
 
