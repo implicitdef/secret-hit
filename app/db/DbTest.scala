@@ -24,11 +24,13 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
       for {
         _ <- SlackUsers.delete
         _ <- SlackTeams.delete
+        _ <- Games.delete
         _ <- SlackTeams += SlackTeamRow("team1", "slackApiToken")
         _ <- SlackTeams += SlackTeamRow("team2", "slackApiToken2")
         _ <- SlackUsers += SlackUserRow("team1", "userA")
         _ <- SlackUsers += SlackUserRow("team1", "userB")
         _ <- SlackUsers += SlackUserRow("team1", "userC")
+        _ <- Games += GameRow("team1", -1, "slackChannel", 0)
         teams <- SlackTeams.result
         users <- SlackUsers.result
       } yield (teams, users)
