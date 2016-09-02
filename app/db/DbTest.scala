@@ -3,11 +3,11 @@ package db
 import java.sql.Timestamp
 import javax.inject._
 
-import db.models.Tables._
+import db.slicksetup.Tables._
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.db.slick.DatabaseConfigProvider
-import slick.dbio.{DBIOAction, NoStream}
+import slick.dbio._
 import slick.driver.JdbcProfile
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,7 +28,7 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
   def doTest: Future[Unit] =
     run {
       for {
-        _ <- Teams += TeamRow(AutoIncr, "name", new Timestamp(DateTime.now.toDate.getTime), Some("funk"))
+        _ <- Teams += TeamRow(AutoIncr, "name", DateTime.now, Some("funk"))
         size <- Teams.size.result
       } yield size
     }.map { size =>
