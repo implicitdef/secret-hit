@@ -1,6 +1,6 @@
 package game
 
-import game.Models.{GameState, GameStep, Policy}
+import game.Models.{GameState, GameStep, Player, PlayerId, Policy, Role}
 
 import scala.util.Random._
 
@@ -22,5 +22,20 @@ object Extras {
     Nil,
     Nil
   )
+
+  implicit class RichState(s: GameState){
+    def registerPlayer(playerId: PlayerId, slackUserName: String): GameState =
+      s.copy(players = s.players :+ Player(
+          playerId,
+          slackUserName,
+          // we will assign the roles when the game starts
+          Role.Liberal
+      ))
+  }
+
+
+
+
+
 
 }

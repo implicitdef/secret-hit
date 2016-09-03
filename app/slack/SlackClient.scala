@@ -3,7 +3,7 @@ package slack
 import javax.inject.Inject
 
 import com.google.inject.Singleton
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.{JsValue, Json, Reads}
 import play.api.libs.ws.WSClient
 import setup.Settings
 import slack.SlackClient._
@@ -17,18 +17,27 @@ class SlackClient @Inject() (
   wSClient: WSClient
 )(implicit ec: ExecutionContext) {
 
-  def authTest: Future[AuthTestResponse] =
-    call("auth.test")(authTestResponseReads)
+  def authTest(apiToken: String): Future[AuthTestResponse] =
+    call("auth.test", "token" -> apiToken)(authTestResponseReads)
 
+  def post(apiToken: String, channelOrUserId: String, text: String): Future[Unit] = {
+    call[JsValue]("chat.postMessage",
+      "token" -> apiToken,
+      "channel" -> channelOrUserId,
+      "text" -> text
+    ).map(_ => ())
+  }
 
-
+  def listUsers(apiToken: String): Future[Seq[Member]] = {
+    call[ListUsersResponse]("users.list", "token" -> apiToken)
+      .map(_.members)
+  }
 
   private def call[A : Reads](apiMethod: String, params: (String, String)*): Future[A] = {
     val url = s"https://slack.com/api/$apiMethod"
     wSClient
       .url(url)
       .withQueryString(params: _*)
-      .withQueryString("token" -> settings.slackApiToken)
       .get
       .map { res =>
         if (res.isGoodStatus) {
@@ -48,6 +57,15 @@ object SlackClient {
     team_id: String,
     user_id: String
   )
+  case class Member(
+    id: String,
+    name: String
+  )
+  case class ListUsersResponse(
+    members: Seq[Member]
+  )
+  implicit val memberReads = Json.reads[Member]
+  implicit val listUserResponseReads = Json.reads[ListUsersResponse]
   implicit val authTestResponseReads = Json.reads[AuthTestResponse]
 
 }

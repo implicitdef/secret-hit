@@ -4,7 +4,8 @@
 CREATE TABLE slack_teams(
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   slack_team_id TEXT NOT NULL PRIMARY KEY CHECK (char_length(slack_team_id) < 150),
-  slack_api_token TEXT NOT NULL CHECK (char_length(slack_api_token) < 150)
+  slack_api_token TEXT NOT NULL CHECK (char_length(slack_api_token) < 150),
+  slack_bot_id TEXT NOT NULL CHECK (char_length(slack_bot_id) < 150)
 );
 
 

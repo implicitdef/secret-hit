@@ -11,18 +11,18 @@ object Tables {
   // create our schema through slick
   private val FkName = "dummy_foreign_key"
 
-
   //=============================
 
   case class SlackTeamRow(
     slackTeamId: String,
-    slackApiToken: String
-                         //TODO rajouter le bot id
+    slackApiToken: String,
+    slackBotId: String
   )
   class SlackTeam(tag: Tag) extends Table[SlackTeamRow](tag, "slack_teams") {
-    def * = (slackTeamId, slackApiToken) <> (SlackTeamRow.tupled, SlackTeamRow.unapply)
+    def * = (slackTeamId, slackApiToken, slackBotId) <> (SlackTeamRow.tupled, SlackTeamRow.unapply)
     def slackTeamId: Rep[String] = column[String]("slack_team_id", O.PrimaryKey)
     def slackApiToken: Rep[String] = column[String]("slack_api_token")
+    def slackBotId: Rep[String] = column[String]("slack_bot_id")
   }
   lazy val SlackTeams = TableQuery[SlackTeam]
 
