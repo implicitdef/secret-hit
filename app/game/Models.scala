@@ -8,10 +8,12 @@ import enumeratum._
 object Models {
 
   case class GameState(
+    step: GameStep,
     stack: Seq[Policy],
     discarded: Seq[Policy],
     played: Seq[Policy],
     inLegislativeSession: Seq[Policy],
+    // all registerd players, including those who died
     players: Seq[Player],
     // during an election
     votes: Map[PlayerId, Boolean],
@@ -27,7 +29,9 @@ object Models {
     lastPresident: Option[PlayerId],
     lastChancellor: Option[PlayerId],
     // those that have been investigated
-    investigated: Seq[PlayerId]
+    investigated: Seq[PlayerId],
+    // those who died
+    dead: Seq[PlayerId]
   )
 
   sealed trait Policy extends EnumEntry with Lowercase

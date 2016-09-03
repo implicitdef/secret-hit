@@ -4,7 +4,7 @@ import javax.inject._
 
 import db.slicksetup.Tables._
 import game.Models
-import game.Models.GameState
+import game.Models.{GameState, PlayerId, Policy}
 import play.api.Logger
 import play.api.db.slick.DatabaseConfigProvider
 import slick.dbio._
@@ -28,26 +28,6 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
         _ <- SlackTeams.delete
         _ <- SlackTeams += SlackTeamRow("team1", "slackApiToken")
         _ <- SlackTeams += SlackTeamRow("team2", "slackApiToken2")
-        _ <- Games += GameRow(
-          "team1",
-          -1,
-          "slackChannel",
-          GameState(
-            Nil,
-            Nil,
-            Nil,
-            Nil,
-            Nil,
-            Map.empty,
-            None,
-            None,
-            None,
-            None,
-            None,
-            Nil
-          ),
-          None
-        )
         teams <- SlackTeams.result
         games <- Games.result
       } yield (teams, games)
