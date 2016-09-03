@@ -1,6 +1,7 @@
 package db.slicksetup
 import com.github.tminglei.slickpg._
-import db.slicksetup.Enums._
+import game.Models
+import play.api.libs.json.{JsValue, Json}
 import slick.driver.JdbcProfile
 import slick.profile.Capability
 
@@ -8,8 +9,7 @@ import slick.profile.Capability
 object CustomDriver extends ExPostgresDriver
   with PgArraySupport
   with PgDateSupportJoda
-  with PgPlayJsonSupport
-  with PgEnumSupport {
+  with PgPlayJsonSupport {
 
   def pgjson = "jsonb"
 
@@ -23,18 +23,10 @@ object CustomDriver extends ExPostgresDriver
     with ArrayImplicits
     with DateTimeImplicits
     with JsonImplicits {
-    // not sure if we need this ?
-    implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
 
-    implicit val policyTypeMapper = createEnumJdbcType("policy", Policies)
-    implicit val policyListTypeMapper = createEnumListJdbcType("policy", Policies)
-    implicit val policyColumnExtensionMethodsBuilder = createEnumColumnExtensionMethodsBuilder(Policies)
-    implicit val policyOptionColumnExtensionMethodsBuilder = createEnumOptionColumnExtensionMethodsBuilder(Policies)
+    import Models._
+    implicit val gameStateJsonTypeMapper = MappedJdbcType.base[GameState, JsValue](Json.toJson(_), _.as[GameState])
 
-    implicit val gameStepTypeMapper = createEnumJdbcType("game_step", GameSteps)
-    implicit val gameStepListTypeMapper = createEnumListJdbcType("game_step", GameSteps)
-    implicit val gameStepColumnExtensionMethodsBuilder = createEnumColumnExtensionMethodsBuilder(GameSteps)
-    implicit val gameStepOptionColumnExtensionMethodsBuilder = createEnumOptionColumnExtensionMethodsBuilder(GameSteps)
 
   }
 

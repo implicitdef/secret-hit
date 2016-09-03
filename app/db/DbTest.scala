@@ -2,8 +2,9 @@ package db
 
 import javax.inject._
 
-import db.slicksetup.Enums.GameSteps
 import db.slicksetup.Tables._
+import game.Models
+import game.Models.GameState
 import play.api.Logger
 import play.api.db.slick.DatabaseConfigProvider
 import slick.dbio._
@@ -23,23 +24,38 @@ class DbTest @Inject() (databaseConfigProvider: DatabaseConfigProvider)(
   def doTest: Future[Unit] =
     run {
       for {
-        _ <- SlackUsers.delete
-        _ <- SlackTeams.delete
         _ <- Games.delete
+        _ <- SlackTeams.delete
         _ <- SlackTeams += SlackTeamRow("team1", "slackApiToken")
         _ <- SlackTeams += SlackTeamRow("team2", "slackApiToken2")
-        _ <- SlackUsers += SlackUserRow("team1", "userA")
-        _ <- SlackUsers += SlackUserRow("team1", "userB")
-        _ <- SlackUsers += SlackUserRow("team1", "userC")
-        _ <- Games += GameRow("team1", -1, "slackChannel", 0, GameSteps.game_ready)
+        _ <- Games += GameRow(
+          "team1",
+          -1,
+          "slackChannel",
+          GameState(
+            Nil,
+            Nil,
+            Nil,
+            Nil,
+            Nil,
+            Map.empty,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Nil
+          ),
+          None
+        )
         teams <- SlackTeams.result
-        users <- SlackUsers.result
-      } yield (teams, users)
-    }.map { case (teams, users) =>
+        games <- Games.result
+      } yield (teams, games)
+    }.map { case (teams, games) =>
       Logger.info(s"Teams ${teams.size}")
       teams.foreach {t => Logger.info(t.toString)}
-      Logger.info(s"Users ${users.size}")
-      users.foreach {t => Logger.info(t.toString)}
+      Logger.info(s"Games ${games.size}")
+      games.foreach {t => Logger.info(t.toString)}
     }.recover {
       case t => Logger.error("dbTest failed", t)
     }

@@ -16,6 +16,8 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg" % "0.14.3",
   "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.3",
   "com.github.tminglei" %% "slick-pg_play-json" % "0.14.3",
+  "com.beachape" %% "enumeratum" % "1.4.13",
+  "com.beachape" %% "enumeratum-play-json" % "1.4.13",
   "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test
 )
 

@@ -1,6 +1,7 @@
 package db.slicksetup
 
-import db.slicksetup.Enums.GameSteps.GameStep
+import game.Models.GameState
+import org.joda.time.DateTime
 
 
 object Tables {
@@ -26,34 +27,25 @@ object Tables {
 
   //=============================
 
-  case class SlackUserRow(
-     slackTeamId: String,
-     slackUserId: String
-   )
-  class SlackUser(tag: Tag) extends Table[SlackUserRow](tag, "slack_users") {
-    def * = (slackTeamId, slackUserId) <> (SlackUserRow.tupled, SlackUserRow.unapply)
-    def slackTeamId: Rep[String] = column[String]("slack_team_id")
-    def slackUserId: Rep[String] = column[String]("slack_user_id", O.PrimaryKey)
-    def slackTeam = foreignKey(FkName, slackTeamId, SlackTeams)(_.slackTeamId)
-  }
-  lazy val SlackUsers = TableQuery[SlackUser]
-
-  //=============================
-
   case class GameRow(
-     slackTeamId: String,
-     id: Int,
-     slackChannelId: String,
-     turnsWithoutElections: Int,
-     currentStep: GameStep
-   )
+                      slackTeamId: String,
+                      gameId: Int,
+                      slackChannelId: String,
+                      gameState: GameState,
+                      completedAt: Option[DateTime]
+  )
   class Game(tag: Tag) extends Table[GameRow](tag, "games") {
-    def * = (slackTeamId, id, slackChannelId, turnsWithoutElections, currentStep) <> (GameRow.tupled, GameRow.unapply)
+    def * = (
+      slackTeamId,
+      gameId,
+      slackChannelId,
+      gameState,
+      completedAt) <> (GameRow.tupled, GameRow.unapply)
     def slackTeamId: Rep[String] = column[String]("slack_team_id")
-    def id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+    def gameId: Rep[Int] = column[Int]("game_id", O.AutoInc, O.PrimaryKey)
     def slackChannelId: Rep[String] = column[String]("slack_channel_id")
-    def turnsWithoutElections: Rep[Int] = column[Int]("turns_without_elections")
-    def currentStep: Rep[GameStep] = column[GameStep]("current_step")
+    def gameState: Rep[GameState] = column[GameState]("game_state")
+    def completedAt: Rep[Option[DateTime]] = column[Option[DateTime]]("completed_at")
     def slackTeam = foreignKey(FkName, slackTeamId, SlackTeams)(_.slackTeamId)
   }
   lazy val Games = TableQuery[Game]

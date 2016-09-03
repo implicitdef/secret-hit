@@ -7,5 +7,5 @@
      
  sbt > console >
 
-     
+
     slick.codegen.SourceCodeGenerator.main(Array("slick.driver.PostgresDriver", "org.postgresql.Driver", "jdbc:postgresql://localhost:5432/secret_hitler", "app/TablesGen", "", "manu", ""))
