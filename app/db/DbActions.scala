@@ -3,7 +3,7 @@ package db
 import javax.inject._
 
 import db.DbActions._
-import db.slicksetup.{CustomDriver, Tables}
+import db.slicksetup.CustomDriver
 import db.slicksetup.Tables._
 import org.joda.time.DateTime
 import play.api.db.slick.DatabaseConfigProvider
@@ -44,7 +44,7 @@ class DbActions @Inject()(
   def getCurrentGame(team: SlackTeamRow): ReadAction[Option[GameRow]] =
     Games
       .filter(_.slackTeamId === team.slackTeamId)
-      .filter(_.completedAt.isDefined)
+      .filter(_.completedAt.isEmpty)
       .result
       .map(_.headOption)
 
@@ -61,7 +61,12 @@ class DbActions @Inject()(
       .update(game)
       .map(_ => ())
 
-  def closeGame(game: GameRow): WriteAction[Unit] = ???
+  def closeGame(game: GameRow): WriteAction[Unit] =
+    Games
+      .filter(_.gameId === game.gameId)
+      .map(_.completedAt)
+      .update(Some(DateTime.now))
+      .map(_ => ())
 
 }
 
