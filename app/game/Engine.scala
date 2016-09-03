@@ -21,9 +21,10 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
   import dbActions.api._
 
   //TODO setup transaction and pin session
-  def handleMessage(slackTeamId: String, m: IncomingMessage): ReadWriteAction[Unit] = {
+  def handleMessage(slackTeamId: String, m: IncomingMessage): ReadWriteTxAction[Unit] = {
     (for {
-      team <- dbActions.getOrCreateTeam(slackTeamId)
+      teamOpt <- dbActions.getTeam(slackTeamId)
+      team = teamOpt.getOrElse(err(s"Didn't found team $slackTeamId"))
       gameOpt <- dbActions.getCurrentGame(team)
       _ <- gameOpt
         .map(g => handleMessage(team, g, m))
@@ -42,7 +43,7 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
           completedAt = None
         ))
         _ <- registerPlayerAndSave(team, game, PlayerId(m.user))
-        _ <- DBIOAction.from(tellEverybody(team, "Game started, first user registered, please register the others"))
+        _ <- DBIOAction.from(tellEverybody(team, game, "Game started, first user registered, please register the others"))
       } yield ()
     } else DBIOAction.successful(())
 

@@ -3,25 +3,42 @@ package db
 import javax.inject._
 
 import db.DbActions._
-import db.slicksetup.Tables.{Game, GameRow, SlackTeamRow}
+import db.slicksetup.Tables
+import db.slicksetup.Tables._
 import play.api.db.slick.DatabaseConfigProvider
 import slick.dbio.{DBIOAction, Effect, NoStream}
 import slick.driver.JdbcProfile
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 @Singleton
-class DbActions @Inject()(databaseConfigProvider: DatabaseConfigProvider) {
+class DbActions @Inject()(
+  databaseConfigProvider: DatabaseConfigProvider)(
+  implicit ec: ExecutionContext
+) {
 
-  private val dbConfig = databaseConfigProvider.get[JdbcProfile]
+  val dbConfig = databaseConfigProvider.get[JdbcProfile]
   private def run[R](a: DBIOAction[R, NoStream, Nothing]) = dbConfig.db.run(a)
   val api = dbConfig.driver.api
   import api._
 
 
-  def getOrCreateTeam(teamSlackId: String): ReadWriteAction[SlackTeamRow] = ???
+  def getTeam(slackTeamId: String): ReadAction[Option[SlackTeamRow]] =
+    for {
+      teams <- SlackTeams.filter(_.slackTeamId === slackTeamId).result
+      teamOpt = teams.headOption
+    } yield teamOpt
 
-  def closeAllCurrentGamesOfTeam(team: SlackTeamRow): WriteAction[Unit] = ???
+  def getOrCreateTeam(team: SlackTeamRow): ReadWriteAction[Unit] =
+    (SlackTeams += team).map(_ => ())
+
+  def closeAllCurrentGamesOfTeam(team: SlackTeamRow): WriteAction[Unit] = {
+    Games
+      //.filter(_.slackTeamId === team.slackTeamId)
+      //.filter(_.completedAt.isEmpty)
+      .map(_.slackTeamId)
+      .update("ff")
+  }
 
   def getCurrentGame(team: SlackTeamRow): ReadAction[Option[GameRow]] = ???
 
@@ -39,6 +56,7 @@ object DbActions {
   type WriteAction[+R] = DBIOAction[R, NoStream, Effect.Write]
   type ReadAction[+R] = DBIOAction[R, NoStream, Effect.Read]
   type ReadWriteAction[+R] = DBIOAction[R, NoStream, Effect.Read with Effect.Write]
+  type ReadWriteTxAction[+R] = DBIOAction[R, NoStream, Effect.Read with Effect.Write with Effect.Transactional]
 
 
 }
