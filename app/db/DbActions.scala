@@ -3,8 +3,9 @@ package db
 import javax.inject._
 
 import db.DbActions._
-import db.slicksetup.Tables
+import db.slicksetup.{CustomDriver, Tables}
 import db.slicksetup.Tables._
+import org.joda.time.DateTime
 import play.api.db.slick.DatabaseConfigProvider
 import slick.dbio.{DBIOAction, Effect, NoStream}
 import slick.driver.JdbcProfile
@@ -19,34 +20,46 @@ class DbActions @Inject()(
 
   val dbConfig = databaseConfigProvider.get[JdbcProfile]
   private def run[R](a: DBIOAction[R, NoStream, Nothing]) = dbConfig.db.run(a)
-  val api = dbConfig.driver.api
+  val api = dbConfig.driver.asInstanceOf[CustomDriver.type].api
   import api._
 
-
   def getTeam(slackTeamId: String): ReadAction[Option[SlackTeamRow]] =
-    for {
-      teams <- SlackTeams.filter(_.slackTeamId === slackTeamId).result
-      teamOpt = teams.headOption
-    } yield teamOpt
+    SlackTeams
+      .filter(_.slackTeamId === slackTeamId)
+      .result
+      .map(_.headOption)
 
   def getOrCreateTeam(team: SlackTeamRow): ReadWriteAction[Unit] =
     (SlackTeams += team).map(_ => ())
 
   def closeAllCurrentGamesOfTeam(team: SlackTeamRow): WriteAction[Unit] = {
     Games
-      //.filter(_.slackTeamId === team.slackTeamId)
-      //.filter(_.completedAt.isEmpty)
-      .map(_.slackTeamId)
-      .update("ff")
+      .filter(_.slackTeamId === team.slackTeamId)
+      .filter(_.completedAt.isEmpty)
+      .map(_.completedAt)
+      .update(Some(DateTime.now))
+      .map(_ => ())
   }
 
-  def getCurrentGame(team: SlackTeamRow): ReadAction[Option[GameRow]] = ???
+  def getCurrentGame(team: SlackTeamRow): ReadAction[Option[GameRow]] =
+    Games
+      .filter(_.slackTeamId === team.slackTeamId)
+      .filter(_.completedAt.isDefined)
+      .result
+      .map(_.headOption)
 
   // voir s'il faut recuperer un nouveau game ?
   // normalement oui pour l'id
-  def createGame(game: GameRow): WriteAction[GameRow] = ???
+  def createGame(game: GameRow): WriteAction[GameRow] =
+    Games
+      .+=(game)
+      .map(id => game.copy(gameId = id))
 
-  def updateGame(game: GameRow): WriteAction[Unit] = ???
+  def updateGame(game: GameRow): WriteAction[Unit] =
+    Games
+      .filter(_.gameId === game.gameId)
+      .update(game)
+      .map(_ => ())
 
   def closeGame(game: GameRow): WriteAction[Unit] = ???
 
