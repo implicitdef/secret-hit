@@ -17,6 +17,7 @@ object Tables {
   case class SlackTeamRow(
     slackTeamId: String,
     slackApiToken: String
+                         //TODO rajouter le bot id
   )
   class SlackTeam(tag: Tag) extends Table[SlackTeamRow](tag, "slack_teams") {
     def * = (slackTeamId, slackApiToken) <> (SlackTeamRow.tupled, SlackTeamRow.unapply)

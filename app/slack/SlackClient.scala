@@ -22,6 +22,7 @@ class SlackClient @Inject() (
 
 
 
+
   private def call[A : Reads](apiMethod: String, params: (String, String)*): Future[A] = {
     val url = s"https://slack.com/api/$apiMethod"
     wSClient
