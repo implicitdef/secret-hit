@@ -48,6 +48,13 @@ object Extras {
           // we will assign the roles when the game starts
           Role.Liberal
       ))
+    def removePlayer(playerId: PlayerId): GameState =
+      s.copy(players = s.players.filterNot(_.id == playerId))
+  }
+
+  implicit class RichGameRow(g: GameRow){
+    def updateState(func: GameState => GameState) =
+      g.copy(gameState = func(g.gameState))
   }
 
 
@@ -56,6 +63,10 @@ object Extras {
       slackClient.post(team.slackApiToken, playerId.slackUserId, text)
     def tellEverybody(team: SlackTeamRow, game: GameRow, text: String): Future[Unit] =
       slackClient.post(team.slackApiToken, game.slackChannelId, text)
+    def tellInPrivateOk(team: SlackTeamRow, playerId: PlayerId): Future[Unit] =
+      tellInPrivate(team, playerId, "OK")
+    def tellEverybodyOk(team: SlackTeamRow, game: GameRow): Future[Unit] =
+      tellEverybody(team, game, "OK")
     def fetchSlackUserName(team: SlackTeamRow, id: PlayerId)
                           (implicit e: ExecutionContext): Future[String] =
       fetchSlackUserNames(team, Seq(id)).map(_(id))

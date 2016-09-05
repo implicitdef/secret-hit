@@ -7,10 +7,12 @@ import db.DbActions
 import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Models.{GameStep, PlayerId}
+import play.api.Logger
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
 import slick.dbio._
 import utils._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -20,7 +22,6 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
   import Extras._
   import dbActions.api._
 
-  //TODO setup transaction and pin session
   def handleMessage(slackTeamId: String, m: IncomingMessage): ReadWriteTxAction[Unit] = {
     (for {
       teamOpt <- dbActions.getTeam(slackTeamId)
@@ -31,6 +32,8 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
         .getOrElse(handleMessageWithNoGame(team, m))
     } yield ()).transactionally
   }
+
+  //// PRIVATE
 
   def handleMessageWithNoGame(team: SlackTeamRow, m: IncomingMessage): WriteAction[Unit] =
     if (m.isPublic && m.withDirectMention(team) && m.is(NewGame)) {
@@ -43,16 +46,29 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
           completedAt = None
         ))
         _ <- registerPlayerAndSave(team, game, PlayerId(m.user))
-        _ <- DBIOAction.from(slackClient.tellEverybody(
+        _ <- slackClient.tellEverybody(
           team, game, "Game started, first user registered, please register the others"
-        ))
+        ).asDBIOAction
       } yield ()
     } else DBIOAction.successful(())
 
   def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] = {
     game.gameState.step match {
       case GameStep.RegisteringPlayers =>
-        ???
+        if (m.isPublic) {
+          val playerId = PlayerId(m.user)
+          if (m.is(Join) && ! game.gameState.players.exists(_.id == PlayerId)){
+            for {
+              _ <- registerPlayerAndSave(team, game, playerId)
+              _ <- slackClient.tellEverybodyOk(team, game).asDBIOAction
+            } yield ()
+          } else if (m.is(Leave) && game.gameState.players.exists(_.id == PlayerId)){
+            for {
+              _ <- dbActions.updateGame(game.updateState(_.removePlayer(playerId)))
+              _ <- slackClient.tellEverybodyOk(team, game).asDBIOAction
+            } yield ()
+          } else dunit
+        } else dunit
       case _ =>
         ???
     }
@@ -60,9 +76,8 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
 
   def registerPlayerAndSave(team: SlackTeamRow, game: GameRow, playerId: PlayerId): WriteAction[Unit] =
     for {
-      name <- DBIOAction.from(slackClient.fetchSlackUserName(team, playerId))
-      updatedGame = game.copy(gameState = game.gameState.registerPlayer(playerId, name))
-      _ <- dbActions.updateGame(updatedGame)
+      name <- slackClient.fetchSlackUserName(team, playerId).asDBIOAction
+      _ <- dbActions.updateGame(game.updateState(_.registerPlayer(playerId, name)))
     } yield ()
 
   def listRegisteredPlayers(team: SlackTeamRow, game: GameRow): Future[Unit] =
