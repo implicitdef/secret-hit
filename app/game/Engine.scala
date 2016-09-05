@@ -61,11 +61,19 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
             for {
               _ <- registerPlayerAndSave(team, game, playerId)
               _ <- slackClient.tellEverybodyOk(team, game).asDBIOAction
+              _ <- listRegisteredPlayers(team, game).asDBIOAction
             } yield ()
           } else if (m.is(Leave) && game.gameState.players.exists(_.id == PlayerId)){
             for {
               _ <- dbActions.updateGame(game.updateState(_.removePlayer(playerId)))
               _ <- slackClient.tellEverybodyOk(team, game).asDBIOAction
+              _ <- listRegisteredPlayers(team, game).asDBIOAction
+            } yield ()
+          } else if (m.is(StartGame) && game.gameState.hasGoodNumberOfPlayers){
+            for {
+              _ <- dbActions.updateGame(game.updateState(_.startGame))
+              //TODO describe more the state of the game, and send each player his role
+              _ <- slackClient.tellEverybody(team, game, "Game started").asDBIOAction
             } yield ()
           } else dunit
         } else dunit
@@ -88,6 +96,11 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
         game.slackChannelId,
         s"Current players ${game.gameState.players.size}: ${names.map("@" + _).mkString(", ")}"
       )
+      _ <- if (game.gameState.hasGoodNumberOfPlayers) {
+        slackClient.tellEverybody(team, game,
+          s"You have a good number of players. Say $StartGame to start the game."
+        )
+      } else funit
     } yield ()
 
 

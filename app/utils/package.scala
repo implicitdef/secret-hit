@@ -16,9 +16,13 @@ package object utils extends Pimp {
     def isGoodStatus = (200 to 299) contains r.status
   }
 
-  implicit class RichFuture[A](f: Future[A]){
+  implicit class RichFuture2[A](f: Future[A]){
     def asDBIOAction: DBIOAction[A, NoStream, Effect] =
       DBIOAction.from(f)
   }
+
+
+
+
 
 }
