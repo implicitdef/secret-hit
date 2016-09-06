@@ -55,12 +55,12 @@ object Extras {
     def startGame =
       s
         .assignRolesAndShuffleOrder
-        .setPresidentToHeadOfPlayers
+        .setPresidentToHeadOfAlivePlayers
         .withStep(GameStep.Electing)
     def withStep(step: GameStep) =
       s.copy(step = step)
-    def setPresidentToHeadOfPlayers =
-      s.copy(president = s.players.headOption.map(_.id))
+    def setPresidentToHeadOfAlivePlayers =
+      s.copy(president = s.alivePlayers.headOption.map(_.id))
     def cyclingPlayers = {
       val head = s.players.headOption.getOrElse(err(s"Can't cycle, no player left"))
       s.copy(players = s.players.tail :+ head)
@@ -79,6 +79,8 @@ object Extras {
         }
       s.copy(players = shuffle(playersWithRoles))
     }
+    def alivePlayers: Seq[Player] =
+      s.players.filterNot(p => s.dead.contains(p.id))
   }
 
   implicit class RichGameRow(g: GameRow){

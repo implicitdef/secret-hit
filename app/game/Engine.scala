@@ -6,7 +6,8 @@ import javax.inject.{Inject, Singleton}
 import db.DbActions
 import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
-import game.Models.{GameStep, PlayerId}
+import game.Models.Role.{Fascist, Hitler}
+import game.Models.{GameStep, PlayerId, Role}
 import play.api.Logger
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
@@ -70,10 +71,14 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
               _ <- listRegisteredPlayers(team, game).asDBIOAction
             } yield ()
           } else if (m.is(StartGame) && game.gameState.hasGoodNumberOfPlayers){
+            val updatedGame = game.updateState(_.startGame)
             for {
-              _ <- dbActions.updateGame(game.updateState(_.startGame))
-              //TODO describe more the state of the game, and send each player his role
-              _ <- slackClient.tellEverybody(team, game, "Game started").asDBIOAction
+              _ <- dbActions.updateGame(updatedGame)
+              state = updatedGame.gameState
+              desc = s"Game started. There are ${state.players.size} players. " +
+                s"${state.players.count(_.role == Role.Fascist)} are fascist(s). " +
+                s"Another player is Hitler. The rest are liberals."
+              _ <- slackClient.tellEverybody(team, updatedGame, desc).asDBIOAction
             } yield ()
           } else dunit
         } else dunit
@@ -103,6 +108,28 @@ class Engine @Inject()(dbActions: DbActions, slackClient: SlackClient){
       } else funit
     } yield ()
 
+  def tellEachTheirRole(team: SlackTeamRow, game: GameRow): Future[Unit] = {
+    val players = game.gameState.players
+    val fascists = players.filter(_.role == Fascist)
+    val hitler = players.find(_.role == Hitler).getOrElse(err("No Hitler found amongst players ??"))
+    Future.traverse(game.gameState.players) { player =>
+      val text = (player.role, fascists) match {
+        case (Role.Liberal, _) => "You are a liberal."
+        //TODO ici fetcher le name
+        case (Role.Hitler, Seq(fascist)) =>
+          s"You are Hitler. The fascist is ${fascist.slackUserName}. He knows who you are too."
+        case (Role.Fascist, Seq(fascist)) =>
+          s"You are the only fascist. ${hitler.slackUserName} is Hitler. He knows who you are too."
+        case (Role.Hitler, multipleFascists) =>
+          s"You are Hitler. There are ${multipleFascists.size} fascists out there that will help you. " +
+          s"They know who you are."
+        case (Role.Fascist, multipleFascists) =>
+          s"You are a fascist. The fascists are the following : ${multipleFascists.map(_.slackUserName).mkString(", ")}. " +
+          s"${hitler.slackUserName} is Hitler, but he doesn't know who the fascists are."
+      }
+      slackClient.tellInPrivate(team, player.id, text)
+    }.map(_ => ())
+  }
 
 }
 
