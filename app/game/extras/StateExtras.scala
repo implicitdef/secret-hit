@@ -27,8 +27,12 @@ trait StateExtras {
         .withStep(GameStep.ChoosingChancellor)
     def withStep(step: GameStep) =
       s.copy(step = step)
+    def isAlive(id: PlayerId) =
+      ! s.dead.contains(id)
     def setPresidentToHeadOfAlivePlayers =
       s.copy(president = s.alivePlayers.headOption.map(_.id))
+    def presidentName =
+      s.president.flatMap(id => s.players.find(_.id == id)).map(_.slackUserName)
     def cyclingPlayers = {
       val head = s.players.headOption.getOrElse(err(s"Can't cycle, no player left"))
       s.copy(players = s.players.tail :+ head)

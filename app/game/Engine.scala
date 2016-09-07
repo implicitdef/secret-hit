@@ -4,8 +4,9 @@ import javax.inject.{Inject, Singleton}
 
 import db.DbActions
 import db.DbActions._
+import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Models.GameStep
-import game.handlers.{NoGameMessageHandler, RegisteringPlayersMessageHandler, WithGameMessageHandler}
+import game.handlers.{ChoosingChancellorMessageHandler, NoGameMessageHandler, RegisteringPlayersMessageHandler, WithGameMessageHandler}
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
 import utils._
@@ -17,9 +18,11 @@ class Engine @Inject()(
   dbActions: DbActions,
   slackClient: SlackClient,
   noGameMessageHandler: NoGameMessageHandler,
-  registeringPlayersMessageHandler: RegisteringPlayersMessageHandler
+  registeringPlayersMessageHandler: RegisteringPlayersMessageHandler,
+  choosingChancellorMessageHandler: ChoosingChancellorMessageHandler
 ){
   import dbActions.api._
+  import Extras._
 
   def handleMessage(slackTeamId: String, m: IncomingMessage): ReadWriteTxAction[Unit] = {
     (for {
@@ -27,16 +30,26 @@ class Engine @Inject()(
       team = teamOpt.getOrElse(err(s"Didn't found team $slackTeamId"))
       gameOpt <- dbActions.getCurrentGame(team)
       _ <- gameOpt
-        .map(g => pickHandler(g.gameState.step).handleMessage(team, g, m))
+        .map { g =>
+          if (m.isPublic && m.channel != g.slackChannelId) ignoringHandler
+          else pickHandler(g.gameState.step).handleMessage(team, g, m)
+        }
         .getOrElse(noGameMessageHandler.handleMessage(team, m))
     } yield ()).transactionally
   }
 
   private def pickHandler(gameStep: GameStep): WithGameMessageHandler = gameStep match {
     case GameStep.RegisteringPlayers => registeringPlayersMessageHandler
+    case GameStep.ChoosingChancellor => choosingChancellorMessageHandler
       //TODO continue here
     case _ => ???
   }
+
+  private def ignoringHandler = new WithGameMessageHandler {
+    override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] =
+      dunit
+  }
+
 
 }
 

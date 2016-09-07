@@ -55,10 +55,11 @@ class RegisteringPlayersMessageHandler @Inject()(
             s"Another player is Hitler. The rest are liberals."
           }.action
           _ <- tellEachTheirRole(updatedSlack, updatedGame).action
-          namesInOrder = state.players.map("@" + _.slackUserName)
           _ <- updatedSlack.tellEverybody(s"You will play in the following " +
-            s"order : ${namesInOrder.commas}").action
-          prezCandidateName = namesInOrder.head
+            s"order : ${state.players.map("@" + _.slackUserName).commas}").action
+          prezCandidateName = updatedGame.gameState.presidentName.getOrElse(err(
+            "No president found despite having started the game"
+          ))
           _ <- updatedSlack.tellEverybody("The first candidate" +
             s" for presidency is therefore $prezCandidateName").action
           _ <- updatedSlack.tellEverybody(s"$prezCandidateName, please choose " +
