@@ -17,9 +17,10 @@ package object utils extends Pimp {
   }
 
   implicit class RichFuture2[A](f: Future[A]){
-    def asDBIOAction: DBIOAction[A, NoStream, Effect] =
+    def action: DBIOAction[A, NoStream, Effect] =
       DBIOAction.from(f)
   }
+
 
 
 

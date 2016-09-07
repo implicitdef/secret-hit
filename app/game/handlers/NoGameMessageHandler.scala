@@ -31,12 +31,14 @@ class NoGameMessageHandler @Inject()(
           gameState = initialState,
           completedAt = None
         ))
+        slack = slackClient.withTeam(team).withGame(game)
         firstPlayerId = PlayerId(m.user)
-        name <- slackClient.fetchSlackUserName(team, firstPlayerId).asDBIOAction
-        _ <- dbActions.updateGame(game.updateState(_.registerPlayer(firstPlayerId, name)))
-        _ <- slackClient.tellEverybody(
-          team, game, "Game started, first user registered, please register the others"
-        ).asDBIOAction
+        name <- slack.fetchSlackUserName(firstPlayerId).action
+        updatedGame = game.updateState(_.registerPlayer(firstPlayerId, name))
+        _ <- dbActions.updateGame(updatedGame)
+        _ <- slack.withGame(updatedGame).tellEverybody {
+          "Game started, first user registered, please register the others"
+        }.action
       } yield ()
     } else DBIOAction.successful(())
 

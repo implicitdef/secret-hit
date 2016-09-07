@@ -7,6 +7,7 @@ import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Models.Role.Hitler
 import game.Models.{PlayerId, Role}
+import game.extras.slackextras.SlackWithGameExtras
 import game.{Commands, Extras}
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
@@ -22,54 +23,71 @@ class RegisteringPlayersMessageHandler @Inject()(
   import Commands._
   import Extras._
 
+
+
   override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] = {
+    val slack = slackClient.withTeam(team).withGame(game)
     if (m.isPublic) {
       val playerId = PlayerId(m.user)
       if (m.is(Join) && ! game.gameState.players.exists(_.id == PlayerId)){
         for {
-          name <- slackClient.fetchSlackUserName(team, playerId).asDBIOAction
-          _ <- dbActions.updateGame(game.updateState(_.registerPlayer(playerId, name)))
-          _ <- slackClient.tellEverybodyOk(team, game).asDBIOAction
-          _ <- listRegisteredPlayers(team, game).asDBIOAction
+          name <- slack.fetchSlackUserName(playerId).action
+          updatedGame = game.updateState(_.registerPlayer(playerId, name))
+          _ <- dbActions.updateGame(updatedGame)
+          updatedSlack = slack.withGame(updatedGame)
+          _ <- updatedSlack.tellEverybodyOk.action
+          _ <- tellRegisteredPlayers(updatedSlack, updatedGame).action
         } yield ()
       } else if (m.is(Leave) && game.gameState.players.exists(_.id == PlayerId)){
+        val updatedGame = game.updateState(_.removePlayer(playerId))
         for {
-          _ <- dbActions.updateGame(game.updateState(_.removePlayer(playerId)))
-          _ <- slackClient.tellEverybodyOk(team, game).asDBIOAction
-          _ <- listRegisteredPlayers(team, game).asDBIOAction
+          _ <- dbActions.updateGame(updatedGame)
+          updatedSlack = slack.withGame(updatedGame)
+          _ <- slack.tellEverybodyOk.action
+          _ <- tellRegisteredPlayers(updatedSlack, updatedGame).action
         } yield ()
       } else if (m.is(StartGame) && game.gameState.hasGoodNumberOfPlayers){
         val updatedGame = game.updateState(_.startGame)
         for {
           _ <- dbActions.updateGame(updatedGame)
           state = updatedGame.gameState
-          desc = s"Game started. There are ${state.players.size} players. " +
+          updatedSlack = slack.withGame(updatedGame)
+          _ <- updatedSlack.tellEverybody {
+            s"Game started. There are ${state.players.size} players. " +
             s"${state.players.count(_.role == Role.Fascist)} are fascist(s). " +
             s"Another player is Hitler. The rest are liberals."
-          _ <- slackClient.tellEverybody(team, updatedGame, desc).asDBIOAction
-          _ <- tellEachTheirRole(team, updatedGame).asDBIOAction
+          }.action
+          _ <- tellEachTheirRole(updatedSlack, updatedGame).action
+          names <- updatedSlack.fetchSlackUserNames(state.players.map(_.id)).action
+          namesInOrder = state.players.map(p => "@" + names(p.id))
+          _ <- updatedSlack.tellEverybody(s"You will play in the following " +
+            s"order : ${namesInOrder.mkString(", ")}").action
+          prezCandidateName = namesInOrder.head
+          _ <- updatedSlack.tellEverybody("The first candidate" +
+            s" for presidency is therefore $prezCandidateName").action
+          _ <- updatedSlack.tellEverybody(s"$prezCandidateName, please choose " +
+            s"your chancellor to run with you. Just say his username preceded by @.").action
         } yield ()
       } else dunit
     } else dunit
   }
 
-  private def listRegisteredPlayers(team: SlackTeamRow, game: GameRow): Future[Unit] =
+
+  //TODO reorganize these methods
+  private def tellRegisteredPlayers(slack: SlackWithGameExtras, game: GameRow): Future[Unit] =
     for {
-      names <- slackClient.fetchSlackUserNames(team, game.gameState.players.map(_.id))
-      _ <- slackClient.post(
-        team.slackApiToken,
-        game.slackChannelId,
+      names <- slack.fetchSlackUserNames(game.gameState.players.map(_.id))
+      _ <- slack.tellEverybody(
         s"Current players ${game.gameState.players.size}: ${names.map("@" + _).mkString(", ")}"
       )
       _ <- if (game.gameState.hasGoodNumberOfPlayers) {
-        slackClient.tellEverybody(team, game,
+        slack.tellEverybody(
           s"You have a good number of players. Say $StartGame to start the game."
         )
       } else funit
     } yield ()
 
-
-  private def tellEachTheirRole(team: SlackTeamRow, game: GameRow): Future[Unit] = {
+  private def tellEachTheirRole(slack: SlackWithGameExtras, game: GameRow): Future[Unit] = {
     val players = game.gameState.players
     val fascists = players.filter(_.role == Role.Fascist)
     val hitler = players.find(_.role == Role.Hitler).getOrElse(err("No Hitler found amongst players ??"))
@@ -87,9 +105,7 @@ class RegisteringPlayersMessageHandler @Inject()(
           s"You are a fascist. The fascists are the following : ${multipleFascists.map(_.slackUserName).mkString(", ")}. " +
             s"${hitler.slackUserName} is Hitler, but he doesn't know who the fascists are."
       }
-      slackClient.tellInPrivate(team, player.id, text)
+      slack.tellInPrivate(player.id)(text)
     }.map(_ => ())
   }
-
-
 }
