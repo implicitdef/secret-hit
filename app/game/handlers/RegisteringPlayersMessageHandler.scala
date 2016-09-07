@@ -5,7 +5,6 @@ import javax.inject.{Inject, Singleton}
 import db.DbActions
 import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
-import game.Models.Role.Hitler
 import game.Models.{PlayerId, Role}
 import game.extras.slackextras.SlackWithGameExtras
 import game.{Commands, Extras}
@@ -22,8 +21,6 @@ class RegisteringPlayersMessageHandler @Inject()(
 
   import Commands._
   import Extras._
-
-
 
   override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] = {
     val slack = slackClient.withTeam(team).withGame(game)
@@ -58,10 +55,9 @@ class RegisteringPlayersMessageHandler @Inject()(
             s"Another player is Hitler. The rest are liberals."
           }.action
           _ <- tellEachTheirRole(updatedSlack, updatedGame).action
-          names <- updatedSlack.fetchSlackUserNames(state.players.map(_.id)).action
-          namesInOrder = state.players.map(p => "@" + names(p.id))
+          namesInOrder = state.players.map("@" + _.slackUserName)
           _ <- updatedSlack.tellEverybody(s"You will play in the following " +
-            s"order : ${namesInOrder.mkString(", ")}").action
+            s"order : ${namesInOrder.commas}").action
           prezCandidateName = namesInOrder.head
           _ <- updatedSlack.tellEverybody("The first candidate" +
             s" for presidency is therefore $prezCandidateName").action
@@ -73,19 +69,19 @@ class RegisteringPlayersMessageHandler @Inject()(
   }
 
 
-  //TODO reorganize these methods
-  private def tellRegisteredPlayers(slack: SlackWithGameExtras, game: GameRow): Future[Unit] =
+  private def tellRegisteredPlayers(slack: SlackWithGameExtras, game: GameRow): Future[Unit] = {
+    val players = game.gameState.players
     for {
-      names <- slack.fetchSlackUserNames(game.gameState.players.map(_.id))
-      _ <- slack.tellEverybody(
-        s"Current players ${game.gameState.players.size}: ${names.map("@" + _).mkString(", ")}"
-      )
+      _ <- slack.tellEverybody {
+        s"Current players ${players.size}: ${players.map("@" + _.slackUserName).commas}"
+      }
       _ <- if (game.gameState.hasGoodNumberOfPlayers) {
         slack.tellEverybody(
           s"You have a good number of players. Say $StartGame to start the game."
         )
       } else funit
     } yield ()
+  }
 
   private def tellEachTheirRole(slack: SlackWithGameExtras, game: GameRow): Future[Unit] = {
     val players = game.gameState.players

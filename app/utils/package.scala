@@ -21,6 +21,11 @@ package object utils extends Pimp {
       DBIOAction.from(f)
   }
 
+  implicit class RichSeqString(seq: Seq[String]){
+    def commas =
+      seq.mkString(", ")
+  }
+
 
 
 
