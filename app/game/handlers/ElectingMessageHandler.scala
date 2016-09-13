@@ -29,10 +29,13 @@ class ElectingMessageHandler @Inject()(
       }).map { vote =>
 
         val updatedGame = game.updateState(_.registerVote(voterId, vote))
+        val updatedState = updatedGame.state
         val slack = slackClient.withTeam(team).withGame(updatedGame)
         for {
           _ <- slack.tellInPrivateOk(voterId)
-          //if (updatedGame.gameState.hasEverybodyVoted)
+          _ <- if (updatedState.hasEverybodyVoted) {
+            ???
+          } else funit
         } yield ()
 
 

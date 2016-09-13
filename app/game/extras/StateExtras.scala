@@ -91,11 +91,5 @@ trait StateExtras {
       }
   }
 
-  implicit class RichGameRow(g: GameRow){
-    def updateState(func: GameState => GameState): GameRow =
-      g.copy(gameState = func(g.gameState))
-  }
-
-
 
 }

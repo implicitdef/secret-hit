@@ -7,7 +7,7 @@ import play.api.libs.ws.WSResponse
 
 import scala.concurrent.Future
 
-trait Utils extends Pimp with StateExtras with IncomingMessageExtras with SlackExtras {
+trait Utils extends Pimp with StateExtras with IncomingMessageExtras with SlackExtras with GameRowExtras {
   def fsucc[A](a: A) = Future.successful(a)
   def fnone = fsucc(None)
   def funit = fsucc(())
