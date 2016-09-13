@@ -24,7 +24,6 @@ class SlackWithGameExtras(slackClient: SlackClient, team: SlackTeamRow, game: Ga
   def tellEverybodyOk: Future[Unit] =
     tellEverybody("OK")
 
-  //TODO virer tous les appels à ça (sauf à la creation du game) : ils sont stockés dans le game state !
   def fetchSlackUserName(id: PlayerId)
                         (implicit e: ExecutionContext): Future[String] =
     fetchSlackUserNames(Seq(id)).map(_(id))
@@ -33,7 +32,7 @@ class SlackWithGameExtras(slackClient: SlackClient, team: SlackTeamRow, game: Ga
                          (implicit e: ExecutionContext): Future[Map[PlayerId, String]] =
     slackClient.listUsers(team.slackApiToken).map { members =>
       ids.map { id =>
-        id -> members.find(_.id == id).getOrElse(err(s"Didn't found user $id")).name
+        id -> ("@" + members.find(_.id == id).getOrElse(err(s"Didn't found user $id")).name)
       }.toMap
     }
 

@@ -6,6 +6,7 @@ import db.DbActions
 import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Extras
+import game.Models.PlayerId
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
 import utils._
@@ -13,7 +14,7 @@ import utils._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ChoosingChancellorMessageHandler @Inject()(
+class ElectingMessageHandler @Inject()(
   dbActions: DbActions, slackClient: SlackClient
 )(implicit e: ExecutionContext) extends WithGameMessageHandler {
 
@@ -21,7 +22,31 @@ class ChoosingChancellorMessageHandler @Inject()(
   import game.Commands._
 
   override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] = {
-    if (m.isPublic) {
+    val state = game.gameState
+    val voterId = PlayerId(m.user)
+    if (! m.isPublic && state.canVote(voterId)) {
+      (m.text match {
+        case Ja => Some(true)
+        case Nein => Some(false)
+        case _ => None
+      }).map { vote =>
+
+
+        for {
+          updatedGame <- game.updateState(_.registerVote(voterId, vote))
+          slack = slackClient.withTeam(team).withGame(updatedGame)
+          _ <- slack.tellInPrivateOk(voterId)
+          _ <- if (updatedGame.gameState.hasEverybodyVoted) {
+
+          }
+        } yield ()
+
+
+
+      }
+
+
+
       val prezCandidate = game.gameState.president.getOrElse(err("No president found at step choosing chancellor"))
       if (m.user == prezCandidate.slackUserId){
         m.parseAsCommandWithDirectMention(Pick) match {

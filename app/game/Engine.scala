@@ -6,7 +6,7 @@ import db.DbActions
 import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Models.GameStep
-import game.handlers.{ChoosingChancellorMessageHandler, NoGameMessageHandler, RegisteringPlayersMessageHandler, WithGameMessageHandler}
+import game.handlers._
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
 import utils._
@@ -19,10 +19,11 @@ class Engine @Inject()(
   slackClient: SlackClient,
   noGameMessageHandler: NoGameMessageHandler,
   registeringPlayersMessageHandler: RegisteringPlayersMessageHandler,
-  choosingChancellorMessageHandler: ChoosingChancellorMessageHandler
+  choosingChancellorMessageHandler: ChoosingChancellorMessageHandler,
+  electingMessageHandler: ElectingMessageHandler
 ){
-  import dbActions.api._
   import Extras._
+  import dbActions.api._
 
   def handleMessage(slackTeamId: String, m: IncomingMessage): ReadWriteTxAction[Unit] = {
     (for {
@@ -31,8 +32,10 @@ class Engine @Inject()(
       gameOpt <- dbActions.getCurrentGame(team)
       _ <- gameOpt
         .map { g =>
-          if (m.isPublic && m.channel != g.slackChannelId) ignoringHandler
-          else pickHandler(g.gameState.step).handleMessage(team, g, m)
+          {
+            if (m.isPublic && m.channel != g.slackChannelId) ignoringHandler
+            else pickHandler(g.gameState.step)
+          }.handleMessage(team, g, m)
         }
         .getOrElse(noGameMessageHandler.handleMessage(team, m))
     } yield ()).transactionally
@@ -41,11 +44,12 @@ class Engine @Inject()(
   private def pickHandler(gameStep: GameStep): WithGameMessageHandler = gameStep match {
     case GameStep.RegisteringPlayers => registeringPlayersMessageHandler
     case GameStep.ChoosingChancellor => choosingChancellorMessageHandler
+    case GameStep.Electing => electingMessageHandler
       //TODO continue here
     case _ => ???
   }
 
-  private def ignoringHandler = new WithGameMessageHandler {
+  private def ignoringHandler: WithGameMessageHandler = new WithGameMessageHandler {
     override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] =
       dunit
   }

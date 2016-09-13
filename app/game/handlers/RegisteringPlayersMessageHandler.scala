@@ -56,25 +56,29 @@ class RegisteringPlayersMessageHandler @Inject()(
           }.action
           _ <- tellEachTheirRole(updatedSlack, updatedGame).action
           _ <- updatedSlack.tellEverybody(s"You will play in the following " +
-            s"order : ${state.players.map("@" + _.slackUserName).commas}").action
+            s"order : ${state.players.map(_.slackUserName).commas}").action
           prezCandidateName = updatedGame.gameState.presidentName.getOrElse(err(
             "No president found despite having started the game"
           ))
           _ <- updatedSlack.tellEverybody("The first candidate" +
             s" for presidency is therefore $prezCandidateName").action
           _ <- updatedSlack.tellEverybody(s"$prezCandidateName, please choose " +
-            s"your chancellor to run with you. Just say his username preceded by @.").action
+            s"""your chancellor to run with you. Just say "pick @YOUR_CHOICE_FOR_CHANCELLOR.""").action
+          _ <- updatedSlack.tellEverybody(s"The possible choices for chancellor are : " +
+            updatedGame.gameState.eligiblePlayersForChancellor.map(_.slackUserName).commas).action
         } yield ()
       } else dunit
     } else dunit
   }
+
+  //TOOD enregistrer les @ direct en DB : pas besoin des noms sans les @ !
 
 
   private def tellRegisteredPlayers(slack: SlackWithGameExtras, game: GameRow): Future[Unit] = {
     val players = game.gameState.players
     for {
       _ <- slack.tellEverybody {
-        s"Current players ${players.size}: ${players.map("@" + _.slackUserName).commas}"
+        s"Current players ${players.size}: ${players.map(_.slackUserName).commas}"
       }
       _ <- if (game.gameState.hasGoodNumberOfPlayers) {
         slack.tellEverybody(

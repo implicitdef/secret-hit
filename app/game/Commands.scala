@@ -6,5 +6,8 @@ object Commands {
   val Join = "join"
   val Leave = "leave"
   val StartGame = "start"
+  val Pick = "pick"
+  val Ja = "ja"
+  val Nein = "nein"
 
 }

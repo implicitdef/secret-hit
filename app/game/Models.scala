@@ -8,6 +8,7 @@ import enumeratum._
 object Models {
 
   case class GameState(
+    //TODO rajouter le nombre de failed elections ?
     step: GameStep,
     stack: Seq[Policy],
     discarded: Seq[Policy],
