@@ -3,11 +3,10 @@ package game.handlers
 import javax.inject.{Inject, Singleton}
 
 import db.DbActions
-import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Models.{PlayerId, Role}
 import game.extras.slackextras.SlackWithGameExtras
-import game.{Commands, Extras}
+import game.Commands
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
 import utils._
@@ -20,28 +19,27 @@ class RegisteringPlayersMessageHandler @Inject()(
 )(implicit e: ExecutionContext) extends WithGameMessageHandler {
 
   import Commands._
-  import Extras._
 
-  override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] = {
+  override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): Future[Unit] = {
     val slack = slackClient.withTeam(team).withGame(game)
     if (m.isPublic) {
       val playerId = PlayerId(m.user)
       if (m.is(Join) && ! game.gameState.players.exists(_.id == PlayerId)){
         for {
-          name <- slack.fetchSlackUserName(playerId).action
+          name <- slack.fetchSlackUserName(playerId)
           updatedGame = game.updateState(_.registerPlayer(playerId, name))
           _ <- dbActions.updateGame(updatedGame)
           updatedSlack = slack.withGame(updatedGame)
-          _ <- updatedSlack.tellEverybodyOk.action
-          _ <- tellRegisteredPlayers(updatedSlack, updatedGame).action
+          _ <- updatedSlack.tellEverybodyOk
+          _ <- tellRegisteredPlayers(updatedSlack, updatedGame)
         } yield ()
       } else if (m.is(Leave) && game.gameState.players.exists(_.id == PlayerId)){
         val updatedGame = game.updateState(_.removePlayer(playerId))
         for {
           _ <- dbActions.updateGame(updatedGame)
           updatedSlack = slack.withGame(updatedGame)
-          _ <- slack.tellEverybodyOk.action
-          _ <- tellRegisteredPlayers(updatedSlack, updatedGame).action
+          _ <- slack.tellEverybodyOk
+          _ <- tellRegisteredPlayers(updatedSlack, updatedGame)
         } yield ()
       } else if (m.is(StartGame) && game.gameState.hasGoodNumberOfPlayers){
         val updatedGame = game.updateState(_.startGame)
@@ -53,22 +51,22 @@ class RegisteringPlayersMessageHandler @Inject()(
             s"Game started. There are ${state.players.size} players. " +
             s"${state.players.count(_.role == Role.Fascist)} are fascist(s). " +
             s"Another player is Hitler. The rest are liberals."
-          }.action
-          _ <- tellEachTheirRole(updatedSlack, updatedGame).action
+          }
+          _ <- tellEachTheirRole(updatedSlack, updatedGame)
           _ <- updatedSlack.tellEverybody(s"You will play in the following " +
-            s"order : ${state.players.map(_.slackUserName).commas}").action
+            s"order : ${state.players.map(_.slackUserName).commas}")
           prezCandidateName = updatedGame.gameState.presidentName.getOrElse(err(
             "No president found despite having started the game"
           ))
           _ <- updatedSlack.tellEverybody("The first candidate" +
-            s" for presidency is therefore $prezCandidateName").action
+            s" for presidency is therefore $prezCandidateName")
           _ <- updatedSlack.tellEverybody(s"$prezCandidateName, please choose " +
-            s"""your chancellor to run with you. Just say "pick @YOUR_CHOICE_FOR_CHANCELLOR.""").action
+            s"""your chancellor to run with you. Just say "pick @YOUR_CHOICE_FOR_CHANCELLOR.""")
           _ <- updatedSlack.tellEverybody(s"The possible choices for chancellor are : " +
-            updatedGame.gameState.eligiblePlayersForChancellor.map(_.slackUserName).commas).action
+            updatedGame.gameState.eligiblePlayersForChancellor.map(_.slackUserName).commas)
         } yield ()
-      } else dunit
-    } else dunit
+      } else funit
+    } else funit
   }
 
   //TOOD enregistrer les @ direct en DB : pas besoin des noms sans les @ !

@@ -3,25 +3,23 @@ package game.handlers
 import javax.inject.{Inject, Singleton}
 
 import db.DbActions
-import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Models.{GameState, GameStep, PlayerId, Policy}
-import game.{Commands, Extras}
+import game.Commands
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
-import slick.dbio.DBIOAction
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Random._
 import utils._
 
-import scala.concurrent.ExecutionContext
-import scala.util.Random._
 @Singleton
 class NoGameMessageHandler @Inject()(
   dbActions: DbActions, slackClient: SlackClient
 )(implicit e: ExecutionContext){
   import Commands._
-  import Extras._
 
-  def handleMessage(team: SlackTeamRow, m: IncomingMessage): WriteAction[Unit] =
+  def handleMessage(team: SlackTeamRow, m: IncomingMessage): Future[Unit] =
     if (m.isPublic && m.withDirectMention(team) && m.is(NewGame)) {
       for {
         game: GameRow <- dbActions.createGame(GameRow(
@@ -33,14 +31,14 @@ class NoGameMessageHandler @Inject()(
         ))
         slack = slackClient.withTeam(team).withGame(game)
         firstPlayerId = PlayerId(m.user)
-        name <- slack.fetchSlackUserName(firstPlayerId).action
+        name <- slack.fetchSlackUserName(firstPlayerId)
         updatedGame = game.updateState(_.registerPlayer(firstPlayerId, name))
         _ <- dbActions.updateGame(updatedGame)
         _ <- slack.withGame(updatedGame).tellEverybody {
           "Game started, first user registered, please register the others"
-        }.action
+        }
       } yield ()
-    } else DBIOAction.successful(())
+    } else funit
 
 
   private def initialState = GameState(

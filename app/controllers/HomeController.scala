@@ -2,18 +2,16 @@ package controllers
 
 import javax.inject._
 
-import db.DbTest
 import play.api.Logger
-import utils._
 import play.api.mvc._
 import slack.IncomingEvents._
 import slack.SlackClient
+import utils._
 
 import scala.concurrent.ExecutionContext
 @Singleton
 class HomeController @Inject() (
-                               slackClient: SlackClient,
-                               dbTest: DbTest
+                               slackClient: SlackClient
 )(implicit ec: ExecutionContext) extends Controller {
 
   def index = Action {
@@ -35,12 +33,6 @@ class HomeController @Inject() (
         fsucc(Ok("ok"))
     }.getOrElse {
       fsucc(BadRequest("unrecognized json"))
-    }
-  }
-
-  def test = Action.async { req =>
-    dbTest.doTest.map { _ =>
-      Ok("ok")
     }
   }
 

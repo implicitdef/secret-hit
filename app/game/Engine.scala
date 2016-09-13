@@ -3,7 +3,6 @@ package game
 import javax.inject.{Inject, Singleton}
 
 import db.DbActions
-import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
 import game.Models.GameStep
 import game.handlers._
@@ -12,6 +11,7 @@ import slack.SlackClient
 import utils._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 @Singleton
 class Engine @Inject()(
@@ -22,23 +22,23 @@ class Engine @Inject()(
   choosingChancellorMessageHandler: ChoosingChancellorMessageHandler,
   electingMessageHandler: ElectingMessageHandler
 ){
-  import Extras._
-  import dbActions.api._
 
-  def handleMessage(slackTeamId: String, m: IncomingMessage): ReadWriteTxAction[Unit] = {
-    (for {
-      teamOpt <- dbActions.getTeam(slackTeamId)
-      team = teamOpt.getOrElse(err(s"Didn't found team $slackTeamId"))
-      gameOpt <- dbActions.getCurrentGame(team)
-      _ <- gameOpt
-        .map { g =>
-          {
-            if (m.isPublic && m.channel != g.slackChannelId) ignoringHandler
-            else pickHandler(g.gameState.step)
-          }.handleMessage(team, g, m)
-        }
-        .getOrElse(noGameMessageHandler.handleMessage(team, m))
-    } yield ()).transactionally
+  def handleMessage(slackTeamId: String, m: IncomingMessage): Future[Unit] = {
+    dbActions.inTransaction {
+      for {
+        teamOpt <- dbActions.getTeam(slackTeamId)
+        team = teamOpt.getOrElse(err(s"Didn't found team $slackTeamId"))
+        gameOpt <- dbActions.getCurrentGame(team)
+        _ <- gameOpt
+          .map { g =>
+            {
+              if (m.isPublic && m.channel != g.slackChannelId) ignoringHandler
+              else pickHandler(g.gameState.step)
+            }.handleMessage(team, g, m)
+          }
+          .getOrElse(noGameMessageHandler.handleMessage(team, m))
+      } yield ()
+    }
   }
 
   private def pickHandler(gameStep: GameStep): WithGameMessageHandler = gameStep match {
@@ -50,8 +50,8 @@ class Engine @Inject()(
   }
 
   private def ignoringHandler: WithGameMessageHandler = new WithGameMessageHandler {
-    override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] =
-      dunit
+    override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): Future[Unit] =
+      funit
   }
 
 

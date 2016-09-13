@@ -1,9 +1,8 @@
 package game
 
-import enumeratum.EnumEntry
 import enumeratum.EnumEntry.Lowercase
+import enumeratum.{EnumEntry, _}
 import play.api.libs.json.{Format, JsResult, JsValue, Json}
-import enumeratum._
 
 object Models {
 

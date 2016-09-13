@@ -3,9 +3,7 @@ package game.handlers
 import javax.inject.{Inject, Singleton}
 
 import db.DbActions
-import db.DbActions._
 import db.slicksetup.Tables.{GameRow, SlackTeamRow}
-import game.Extras
 import slack.IncomingEvents.IncomingMessage
 import slack.SlackClient
 import utils._
@@ -17,10 +15,9 @@ class ChoosingChancellorMessageHandler @Inject()(
   dbActions: DbActions, slackClient: SlackClient
 )(implicit e: ExecutionContext) extends WithGameMessageHandler {
 
-  import Extras._
   import game.Commands._
 
-  override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): ReadWriteAction[Unit] = {
+  override def handleMessage(team: SlackTeamRow, game: GameRow, m: IncomingMessage): Future[Unit] = {
     if (m.isPublic) {
       val prezCandidate = game.gameState.president.getOrElse(err("No president found at step choosing chancellor"))
       if (m.user == prezCandidate.slackUserId){
@@ -31,7 +28,7 @@ class ChoosingChancellorMessageHandler @Inject()(
                for {
                  _ <- dbActions.updateGame(updatedGame)
                  slack = slackClient.withTeam(team).withGame(updatedGame)
-                 _ <- slack.tellEverybodyOk.action
+                 _ <- slack.tellEverybodyOk
                  prezCandidate = updatedGame.gameState.presidentName.getOrElse(err(
                    "No president candidate found, but we just started the election"
                  ))
@@ -43,20 +40,20 @@ class ChoosingChancellorMessageHandler @Inject()(
                    s"candidates for president and chancellor, respectively. Should we elect them ? " +
                    s"Each player, including the candidates, must vote in secret, by sending a " +
                    s"""private message to myself saying ja or nein."""
-                 }.action
+                 }
                  _ <- Future.traverse(updatedGame.gameState.alivePlayers){ p =>
                    slack.tellInPrivate(p.id)(
                      "Please say ja or nein to vote for or against " +
                      "the current candidates for president and chancellor. " +
                      "Your vote will stay secret."
                   )
-                 }.action
+                 }
                } yield ()
-            } else dunit
-          case None => dunit
+            } else funit
+          case None => funit
         }
-      } else dunit
-    } else dunit
+      } else funit
+    } else funit
   }
 
 }
